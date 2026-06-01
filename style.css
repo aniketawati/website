@@ -524,3 +524,219 @@ html {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--secondary-color);
 }
+
+/* ===== Blog ===== */
+.blog-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 0 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.back-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.back-link:hover {
+    color: var(--accent-color);
+}
+
+.blog-header {
+    text-align: center;
+    padding: 2rem 0 3rem;
+}
+
+.blog-header h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.blog-header p {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+}
+
+/* Post list (blog.html) */
+.post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 760px;
+    margin: 0 auto 4rem;
+}
+
+.post-card {
+    display: block;
+    background: var(--bg-light);
+    padding: 2rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+.post-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--secondary-color);
+    box-shadow: var(--shadow);
+}
+
+.post-card .post-meta {
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.post-card h2 {
+    color: var(--accent-color);
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.post-card p {
+    color: var(--text-muted);
+}
+
+.post-card .read-more {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Article (post pages) */
+.article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1rem 0 4rem;
+}
+
+.article-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.article-header h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.2;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+
+.article-header .subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    animation: none;
+    opacity: 1;
+}
+
+.post-meta {
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.post-source {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.post-source a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.post-source a:hover {
+    text-decoration: underline;
+}
+
+.article-body {
+    color: var(--text-light);
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+.article-body p {
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+}
+
+.article-body h2 {
+    color: var(--accent-color);
+    font-size: 1.6rem;
+    margin: 2.5rem 0 1rem;
+}
+
+.article-body h3 {
+    color: var(--text-light);
+    font-size: 1.25rem;
+    margin: 2rem 0 0.75rem;
+}
+
+.article-body ul,
+.article-body ol {
+    margin: 0 0 1.5rem 1.5rem;
+    color: var(--text-muted);
+}
+
+.article-body li {
+    margin-bottom: 0.5rem;
+}
+
+.article-body a {
+    color: var(--secondary-color);
+}
+
+.article-body strong {
+    color: var(--text-light);
+}
+
+.article-body blockquote {
+    border-left: 3px solid var(--primary-color);
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    margin: 0 0 1.5rem;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.article-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .article-body {
+        font-size: 1rem;
+    }
+
+    .post-card,
+    .article {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .post-card {
+        padding: 1.5rem;
+    }
+}

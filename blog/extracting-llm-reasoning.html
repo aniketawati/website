@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Can You Extract an LLM's Reasoning Into a Tiny Probabilistic Program? - Aniket Awati
+    </title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="blog-topbar">
+        <a href="../index.html" class="back-link">← aniketawati.com</a>
+        <a href="../blog.html" class="back-link">← Back to blog</a>
+      </div>
+
+      <article class="article">
+        <header class="article-header">
+          <h1>Can You Extract an LLM's Reasoning Into a Tiny Probabilistic Program?</h1>
+          <p class="subtitle">
+            An experiment in distilling Claude's knowledge into probability tables and
+            Markov chains
+          </p>
+          <div class="post-meta">24 March 2026</div>
+          <span class="post-source">
+            Originally posted on
+            <a
+              href="https://x.com/aniketawati/status/2036462807684882913"
+              target="_blank"
+              rel="noopener"
+              >X</a
+            >.
+          </span>
+        </header>
+
+        <div class="article-body">
+          <p>
+            <strong>TL;DR:</strong> I used Claude (Code + Opus 4.6) to extract its
+            text-to-SQL reasoning patterns into explicit probability tables and Markov
+            chains. The result is ProbSQL, a zero-dependency, pure Python program that runs
+            in &lt;5ms (1000x faster than an LLM API call). While the execution accuracy is
+            low (37.6%), the methodology of prompting an LLM for its reasoning structure—not
+            just its answers—uncovered fascinating insights into how to systematically
+            decompose LLM intelligence.
+          </p>
+          <p>
+            👉 Code &amp; Whitepaper:
+            <a href="https://github.com/aniketawati/axiomata" target="_blank" rel="noopener"
+              >github.com/aniketawati/axiomata</a
+            >
+          </p>
+          <p>
+            I've been thinking about a question that probably doesn't have a clean answer:
+            when an LLM reasons about a task, is the reasoning structured enough to extract
+            into something simpler?
+          </p>
+          <p>
+            Not a smaller neural network — that's model distillation and it's well-trodden
+            ground. I mean something more radical: could you take the conditional
+            probabilities and decision patterns that an LLM uses implicitly, make them
+            explicit, and compile them into a program made of lookup tables?
+          </p>
+          <p>
+            I spent some time exploring this with a coding agent (Claude Code + Opus), using
+            text-to-SQL as a test domain. The results are mixed — honestly more interesting
+            for what I learned about the process than for the accuracy numbers — but I think
+            the methodology points at something worth sharing.
+          </p>
+
+          <h2>Why This Experiment</h2>
+          <p>
+            I wasn't trying to build a production text-to-SQL system. There are much better
+            ways to do that (fine-tuned models, RAG pipelines, or just calling an LLM
+            directly).
+          </p>
+          <p>
+            What I wanted to explore was a more fundamental question: can LLM intelligence
+            be systematically decomposed into conditional probability tables that a
+            non-neural program can execute?
+          </p>
+          <p>
+            The motivation comes from a practical gap. LLMs are powerful but they're
+            expensive (~$0.003/query), slow (~1-3 seconds), opaque (can't explain why they
+            chose a particular answer), and require internet connectivity. For high-volume,
+            latency-sensitive, or edge-deployment scenarios, you can't always afford to call
+            an API.
+          </p>
+          <p>
+            Traditional knowledge distillation produces smaller neural networks. I wanted to
+            see what happens if the target artifact is fundamentally different — a
+            probabilistic program made of Bayesian classifiers and Markov chains, running on
+            Python stdlib with zero ML dependencies.
+          </p>
+          <p>
+            Text-to-SQL seemed like a good test domain because it's structured enough to
+            decompose into steps, has a standard benchmark (WikiSQL), and the LLM's
+            reasoning is articulable ("I picked this column because the question mentions
+            'played for' which implies a school/team column").
+          </p>
+
+          <h2>The Approach: LLM as Reasoning Oracle</h2>
+          <p>
+            The core idea is straightforward. Instead of asking the LLM "what's the
+            answer?", I asked "what's the answer, and how did you decide?"
+          </p>
+          <p>For example, given a question about a sports roster table, a naive prompt yields:</p>
+          <blockquote>"What is the WHERE column?" → "School/Club Team"</blockquote>
+          <p>One data point. Not much I can build from that.</p>
+          <p>A reasoning prompt yields:</p>
+          <blockquote>
+            "What is the WHERE column, and why? Classify as: column_name_mentioned,
+            trigger_phrase_indicates, value_is_entity_name, value_matches_column_type." →
+            column: "School/Club Team", why: "trigger_phrase_indicates", trigger: "played
+            for"
+          </blockquote>
+          <p>
+            Now I have extractable structure. "trigger_phrase_indicates" becomes a state in
+            a Markov chain. "played for" becomes an entry in a trigger→column probability
+            table. The reasoning categories that the LLM reports become the architecture of
+            the probabilistic program.
+          </p>
+          <p>
+            I iterated on this over 18 rounds, developing 11 different prompt types that
+            extracted different aspects of the LLM's reasoning: column resolution logic,
+            value boundary detection, entity type classification, question structure
+            analysis, and more. In total, about 265,000 labeled examples.
+          </p>
+
+          <h2>What I Built</h2>
+          <p>
+            The system — called ProbSQL — is a 7-step compositional program where each step
+            is a conditional probability table:
+          </p>
+          <ol>
+            <li>
+              Question type classification: P(q_type | question_features) — is this a
+              lookup, comparison, count, or superlative question?
+            </li>
+            <li>
+              Condition count estimation: P(n_conditions | features) — how many WHERE
+              clauses does this need?
+            </li>
+            <li>
+              Value span detection: P(start | left_word) × P(end | right_word) — where does
+              the filter value begin and end in the question?
+            </li>
+            <li>
+              SELECT column identification: P(select | question_word, headers) — what column
+              is the question asking about (so I can exclude it from the WHERE candidates)?
+            </li>
+            <li>
+              Value type classification: P(v_type | value_features) — is the extracted value
+              a person name, place, number, category?
+            </li>
+            <li>
+              Column resolution: A 5-state Markov chain that updates a probability
+              distribution over columns: Prior → Entity Knowledge → Proximity → Trigger
+              Phrase → SELECT Exclusion
+            </li>
+            <li>Operator selection: P(op | v_type) — equals, greater than, less than?</li>
+          </ol>
+          <p>
+            Every P(Y|X) is a JSON lookup table computed from the LLM-labeled data. The whole
+            thing runs in ~1.5ms on Python stdlib.
+          </p>
+          <p>
+            The most interesting component is the Markov chain column resolver (step 6). Each
+            state applies a Bayesian update to the probability distribution:
+          </p>
+          <p>
+            <strong>Entity Knowledge</strong> uses a compatibility table between entity types
+            and column types — "Rome" is a city (from a 5,990-entity knowledge base), and
+            "Location" is a place-type column (from 16,601 LLM-classified column headers), so
+            the compatibility score is 0.95. I think of this as "probabilistic attention" —
+            it's the same cross-element relevance scoring that transformer attention
+            computes, but as a static 2D lookup instead of a learned weight matrix.
+          </p>
+          <p>
+            <strong>Proximity</strong> checks whether column name words appear near the value
+            in the question. This is the dominant signal — the LLM's own reasoning labels
+            showed that 65% of the time, it resolves columns by proximity.
+          </p>
+          <p>
+            <strong>Trigger Phrases</strong> like "played for" → school/team column,
+            "directed by" → director column. 98 rules extracted from LLM reasoning labels.
+          </p>
+
+          <h2>The Results (Honestly)</h2>
+          <p>On WikiSQL's full development set (8,357 examples):</p>
+          <ul>
+            <li>
+              37.6% execution accuracy — meaning the generated SQL returns the correct
+              result set about a third of the time
+            </li>
+            <li>53.4% column accuracy — the right column is picked about half the time</li>
+            <li>1.5ms p99 latency — 960x faster than an LLM API call</li>
+            <li>Zero external dependencies — runs on Python stdlib</li>
+          </ul>
+          <p>
+            Let me be direct about what this means: 37.6% is not a good accuracy number. The
+            LLM itself probably achieves 85-90% on this task. State-of-the-art fine-tuned
+            models are above 90%. I'm not claiming this is competitive with those approaches.
+          </p>
+          <p>
+            What's interesting isn't the final number but the decomposition. When I trace
+            where the 62.4% of failures come from:
+          </p>
+          <ul>
+            <li>
+              33% of failures: the column is correct but the value format doesn't match
+              (case, spacing, extra words)
+            </li>
+            <li>
+              20%: the entity type is known but the wrong column is still selected (multiple
+              columns of the same type)
+            </li>
+            <li>18%: the value span isn't detected at all</li>
+            <li>8%: the entity isn't in the knowledge base</li>
+          </ul>
+          <p>
+            Most of the loss isn't in the probabilistic reasoning — it's in the text
+            processing. The Markov chain makes reasonable decisions when given clean inputs.
+            The problem is that extracting clean inputs from messy natural language questions
+            is itself hard.
+          </p>
+
+          <h2>What I Learned (the Actually Useful Part)</h2>
+          <p>
+            The accuracy numbers are what they are. But the process of running 18 rounds of
+            experiments taught me things about LLM knowledge extraction that I think
+            generalize:
+          </p>
+
+          <h3>1. Extract structural rules, not word statistics</h3>
+          <p>
+            I trained an HMM from 3,000 LLM-annotated token sequences. It learned that
+            "Butler" appears as a VALUE with probability 0.003. That's useless — any word can
+            be a value. What works is the structural signal: "a capitalized word following a
+            preposition is probably a value." The LLM's knowledge lives in rules about
+            features, not in word frequency tables.
+          </p>
+          <p>
+            When I switched from word-based HMM emissions to feature-based priors
+            (is_capitalized, follows_trigger, is_number), accuracy jumped from 66% back to
+            73%. The 3,000 annotations were worse than hand-coded structural rules.
+          </p>
+
+          <h3>2. The LLM knows its own reasoning distribution</h3>
+          <p>
+            This was the most surprising finding. When I asked Claude to categorize its
+            column resolution reasoning across 1,500 examples, it reported: 65% proximity,
+            14% trigger phrases, 12% type matching. Using these self-reported percentages as
+            Bayesian weights in the Markov chain outperformed every hand-tuned combination I
+            tried.
+          </p>
+          <p>
+            The LLM's introspective report about how often it uses each strategy is directly
+            usable as the weighting scheme for the probabilistic program.
+          </p>
+
+          <h3>3. New knowledge must modulate, not override</h3>
+          <p>
+            I extracted 5,990 entity types from Claude — "Rome" is a city, "Guard" is a
+            position, "Lakers" is a team. When I used this to override the column resolver's
+            decision ("entity says city, so it must be the Location column"), accuracy
+            dropped. When I used it as a Bayesian update (one factor among five in the Markov
+            chain, contributing evidence but not vetoing), accuracy improved by 0.7
+            percentage points.
+          </p>
+          <p>
+            The lesson is about composability: each knowledge source should contribute to a
+            probability distribution, not make a unilateral decision.
+          </p>
+
+          <h3>4. Sequential pipelines are more robust than joint models</h3>
+          <p>
+            I built a joint (value, column) resolver that scores pairs together —
+            theoretically superior because it considers the interaction between which value
+            you extract and which column it maps to. In practice it performed worse than the
+            sequential pipeline.
+          </p>
+          <p>
+            The reason: when value detection is 69% accurate, jointly resolving value+column
+            means a wrong value confidently drags the column assignment to the wrong place.
+            Sequential isolation contains errors — a wrong value might still end up in the
+            right column if the column resolver has other signals.
+          </p>
+
+          <h3>5. Calibration can hurt ensembles</h3>
+          <p>
+            I ran three parallel resolution strategies and used isotonic regression to
+            calibrate each one's confidence scores. The calibrated ensemble performed worse
+            than naive max-confidence selection. All three paths have similar average
+            accuracy (~30%), so calibration maps everything to ~0.30, destroying per-example
+            signal. The raw confidence captured which specific examples each path handles
+            well — information that averaging destroys.
+          </p>
+
+          <h3>6. Ask for "why," not just "what"</h3>
+          <p>
+            The single biggest methodological improvement came from changing prompts. Early:
+            "What column?" Later: "What column, and why — is it because the name is mentioned,
+            or a trigger phrase, or the value type?"
+          </p>
+          <p>
+            The "why" categories became the Markov chain states. The "why" prompt produces
+            data with probabilistic structure that maps directly onto the program
+            architecture. The "what" prompt only produces flat input-output pairs.
+          </p>
+
+          <h2>The Bigger Question</h2>
+          <p>
+            This experiment doesn't prove that LLM knowledge can be fully extracted into
+            probabilistic programs. 37.6% accuracy with a 50+ point gap to the source LLM is
+            clearly a lossy process.
+          </p>
+          <p>But I think the methodology points at something worth exploring further:</p>
+          <p>
+            The iterative pipeline — structured prompts → labeled data → probability tables →
+            compositional program → benchmark → error analysis → targeted re-prompting — is a
+            repeatable process. Each round produces measurable improvement, and the failure
+            analysis directly guides the next round's prompt design.
+          </p>
+          <p>
+            The probabilistic program architecture — Bayesian classifiers for independent
+            decisions, Markov chains for sequential reasoning, compatibility tables for
+            cross-element scoring — provides a natural target for LLM knowledge. The program
+            structure mirrors the LLM's reasoning decomposition.
+          </p>
+          <p>
+            The trade-offs are real and quantifiable. 960x faster, zero cost, full
+            interpretability, offline capable — but at the cost of accuracy. For some
+            applications (suggestions, approximate matching, pre-filtering) this trade-off is
+            worth it. For others, it clearly isn't.
+          </p>
+          <p>
+            I'm most interested in the hybrid direction: use the probabilistic program for
+            the queries where it's confident, route the uncertain ones to the LLM. That could
+            give you near-LLM accuracy at a fraction of the cost and latency. I haven't built
+            that yet, but the confidence scores are there.
+          </p>
+          <p>
+            If you're interested in exploring this yourself, the full codebase is at
+            <a href="https://github.com/aniketawati/axiomata" target="_blank" rel="noopener"
+              >github.com/aniketawati/axiomata</a
+            >
+            — pure Python, zero dependencies. The whitepaper has all the probability tables
+            and the complete 18-round iteration log.
+          </p>
+          <p>
+            I don't know if this approach scales to harder tasks. Text-to-SQL might be
+            unusually amenable because the reasoning decomposes into identifiable steps. But
+            I think the question — "can you compile an LLM's reasoning into probability
+            tables?" — is worth asking more broadly.
+          </p>
+          <p>
+            This project was built entirely using Claude Code with Claude Opus 4.6, including
+            the data labeling, architecture decisions, and iterative experimentation. The LLM
+            that taught the program is the same one that helped build it.
+          </p>
+        </div>
+
+        <footer class="article-footer">
+          <a href="../blog.html" class="back-link">← Back to blog</a>
+        </footer>
+      </article>
+
+      <footer class="footer">
+        <p>© 2025 Aniket Awati. Made with ☕ and mild existential dread.</p>
+      </footer>
+    </div>
+
+    <script src="../script.js"></script>
+  </body>
+</html>
