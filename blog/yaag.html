@@ -21,7 +21,8 @@
         <header class="article-header">
           <h1>YAAG: API Docs for Go Without Writing a Single Comment</h1>
           <p class="subtitle">
-            Yet Another API doc Generator — a weekend hack from GopherGala 2015
+            Yet Another API doc Generator — a weekend hack from GopherGala 2015 that
+            refused to die
           </p>
           <div class="post-meta">23 January 2015</div>
           <span class="post-source">
@@ -37,55 +38,147 @@
             Go is a wonderful language for building web apps. By early 2015 the ecosystem
             had everything you could want — fast HTTP servers, a dozen good routers,
             helper libraries for days. Everything, that is, except a decent way to
-            document your APIs. And let's be honest: nobody has ever enjoyed writing API
-            documentation.
+            document your APIs. And let's be honest: nobody has ever woken up excited to
+            write API documentation.
           </p>
           <p>
-            So at GopherGala 2015 — a 48-hour global Go hackathon — we decided to fix the
-            part everyone quietly hated. We built the first API doc generator for Go web
-            apps and, true to the genre of "yet another &lt;thing&gt;," called it
-            <strong>YAAG</strong>: Yet Another API doc Generator.
-          </p>
-
-          <h2>The premise: zero comments</h2>
-          <p>
-            Most doc tools ask you to annotate every handler with special comments, keep
-            them in sync, and pray. We wanted the opposite. The whole pitch of YAAG was
-            that you shouldn't have to write a single line of comments to get usable docs.
+            So at GopherGala 2015 — a 48-hour global Go hackathon — a few of us at
+            Betacraft decided to fix the part everyone quietly hated. We built what was, as
+            far as we could tell, the first API doc generator for Go web apps, and — true
+            to the genre of "yet another &lt;thing&gt;" — called it <strong>YAAG</strong>:
+            Yet Another API doc Generator.
           </p>
 
-          <h2>How it works</h2>
+          <h2>Why another doc tool?</h2>
           <p>
-            YAAG is middleware. You drop its handler into your routes and then just use
-            your API the way you already do — hit it with Postman, curl, your test suite,
-            the frontend, whatever. YAAG watches the real requests and responses go by and
+            The tools that existed at the time all asked for the same tax up front. Swagger
+            wanted you to maintain a separate spec, or sprinkle your handlers with special
+            annotation comments and keep them in sync by hand. Other generators wanted a
+            DSL, or a config file, or a build step. Every one of them added a second source
+            of truth that drifted away from the code the moment you shipped a change.
+          </p>
+          <p>
+            Most web services expose their APIs to mobile teams or third-party developers,
+            and keeping that contract documented is genuinely painful. We weren't trying to
+            win the public-facing, beautifully-themed-portal game. We wanted the 80% case:
+            the in-house docs your own team needs, generated for free, always matching
+            reality, with <em>zero</em> lines of comments or annotations.
+          </p>
+
+          <h2>The trick: documentation as a side effect</h2>
+          <p>
+            The core insight is that you already exercise your API constantly — from
+            Postman, from curl, from the frontend, and especially from your test suite.
+            Every one of those calls is a perfectly good, real example of a request and its
+            response. Why describe the API by hand when it's busy describing itself?
+          </p>
+          <p>
+            YAAG is middleware. You wrap your handlers (or register a filter) and then just
+            use your API the way you already do. YAAG sits in the request path, observes the
+            real request — method, path, params, headers, body — and the real response, and
             continuously writes out a clean, Bootstrap-based <code>apidoc.html</code>
-            (plus a JSON file capturing every call it saw). Your documentation is
-            literally a side effect of exercising your own API.
+            grouped by endpoint. It also drops a JSON file capturing every call it saw, so
+            you can post-process the data however you like. Your documentation becomes a
+            side effect of running your own code.
           </p>
-          <p>With the standard <code>net/http</code> package it's about four lines:</p>
+
+          <h2>Four lines to wire it up</h2>
+          <p>
+            With the standard <code>net/http</code> package, adding YAAG is about as small
+            as it gets — initialize it once, then wrap your handler:
+          </p>
           <pre><code>func handler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
 func main() {
-    yaag.Init(&amp;yaag.Config{On: true, DocTitle: "Core", DocPath: "apidoc.html"})
+    yaag.Init(&amp;yaag.Config{
+        On:       true,
+        DocTitle: "Core",
+        DocPath:  "apidoc.html",
+        BaseUrls: map[string]string{"Production": "", "Staging": ""},
+    })
     http.HandleFunc("/", middleware.HandleFunc(handler))
     http.ListenAndServe(":8080", nil)
 }</code></pre>
           <p>
-            From there it grew adapters for the popular frameworks of the day — Gorilla
-            Mux, Martini, and Revel — so most Go web apps could bolt it on with a couple of
-            lines.
+            That <code>Config</code> is the whole control surface. <code>On</code> is the
+            master switch — flip it off and YAAG gets out of the way entirely.
+            <code>DocTitle</code> and <code>DocPath</code> name and place the generated
+            file, and <code>BaseUrls</code> lets you label environments (Production,
+            Staging, whatever) so the generated examples point at the right host.
           </p>
+
+          <h2>It went wherever Go web apps went</h2>
+          <p>
+            A doc tool is only useful if it speaks your framework. So YAAG grew adapters,
+            and kept growing them as the community contributed. With Gorilla Mux it's the
+            same wrap-the-handler pattern:
+          </p>
+          <pre><code>func main() {
+    yaag.Init(&amp;yaag.Config{On: true, DocTitle: "Gorilla Mux", DocPath: "apidoc.html"})
+    r := mux.NewRouter()
+    r.HandleFunc("/", middleware.HandleFunc(handler))
+    http.ListenAndServe(":8080", r)
+}</code></pre>
+          <p>
+            And with Gin you register it as a piece of middleware once and forget about it:
+          </p>
+          <pre><code>func main() {
+    r := gin.Default()
+    yaag.Init(&amp;yaag.Config{On: true, DocTitle: "Gin", DocPath: "apidoc.html"})
+    r.Use(yaag_gin.Document())
+    r.GET("/", func(c *gin.Context) {
+        c.String(http.StatusOK, "Hello World!")
+    })
+    r.Run(":8080")
+}</code></pre>
+          <p>
+            By the end it covered the whole zoo of the era: plain
+            <code>net/http</code>, Gorilla Mux, Martini, Revel, Gin, Iris, and httprouter.
+            Whatever you were building with, YAAG could probably tag along.
+          </p>
+
+          <h2>The workflow that made it click</h2>
+          <p>
+            The combination we recommended — and used ourselves — was simple and a little
+            bit delightful: <strong>drive YAAG from your test suite.</strong> Write tests
+            that hit every handler (you wanted those tests anyway), run them, and let YAAG
+            produce <code>apidoc.html</code> from real, passing requests. Commit the
+            generated file alongside the code. Then turn the middleware
+            <code>off</code> in production so it never touches a live request.
+          </p>
+          <p>
+            The payoff: your docs can never silently rot, because they're regenerated from
+            the same tests that gate your build. If an endpoint's shape changes and the
+            tests still pass, the docs update to match. If the tests don't cover it, well —
+            that's a different problem, and at least now it's visible.
+          </p>
+
+          <h2>See it in motion</h2>
+          <p>Here's the original screencast from back when we built it:</p>
+          <div class="video-embed">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/dQWXxJn6_iE"
+              title="YAAG screencast"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
 
           <h2>The afterlife</h2>
           <p>
-            We built it for in-house docs — the kind you need for your own team but don't
-            want to hand-craft for the public. People liked it more than we expected. Last
-            I checked it's sitting at around 286 stars and a healthy pile of forks, which
-            for a weekend hackathon project is genuinely humbling. Not bad for something
-            whose name is a shrug.
+            We built YAAG for ourselves, in a weekend, to scratch an in-house itch. People
+            liked it more than we ever expected. Last I checked it's sitting at around 286
+            stars and 57 forks, with contributions that came in from well beyond the
+            original Betacraft team — it was a genuine little open-source project, kicked
+            off by Akshay Deo, Brian Newsom, and me during that GopherGala weekend.
+          </p>
+          <p>
+            Not bad for something whose name is, fundamentally, a shrug. Sometimes the best
+            tools are the ones you build because the alternative was writing documentation
+            by hand.
           </p>
         </div>
 

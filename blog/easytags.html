@@ -35,43 +35,95 @@
         <div class="article-body">
           <p>
             A few weeks after <a href="yaag.html">YAAG</a>, another small Go annoyance
-            started to grate. You write struct fields in CamelCase, because that's how Go
-            wants them. But when those structs marshal to JSON (or XML, or hit a SQL
-            column) you almost always want <code>snake_case</code>. So you end up typing
-            every field name twice — once as the Go field, once as the tag, in a different
-            case — for every field, in every struct, forever.
-          </p>
-          <p>
-            It's exactly the kind of repetitive, mechanical work that a computer should be
-            doing. So we made the computer do it. <strong>EasyTags</strong> is a tiny CLI
-            that walks every struct declaration in your file and adds the tags for you,
-            converting the field name to snake_case (camel and pascal cases are supported
-            too).
+            started to grate — and this one shows up in basically every program that ever
+            touches JSON.
           </p>
 
-          <h2>Usage</h2>
-          <p>Point it at a file and tell it which tags you want:</p>
+          <h2>The most boring code you write all day</h2>
+          <p>
+            Go convention says struct fields are exported in CamelCase:
+            <code>FirstName</code>, <code>CreatedAt</code>, <code>IsActive</code>. But the
+            moment those structs cross a wire — marshalled to JSON for an API, to XML for
+            some legacy integration, mapped to SQL columns — you almost always want
+            <code>snake_case</code>: <code>first_name</code>, <code>created_at</code>,
+            <code>is_active</code>. Go lets you bridge the two with <em>struct tags</em>,
+            the little backtick-delimited strings after each field:
+          </p>
+          <pre><code>type User struct {
+    FirstName string
+    CreatedAt time.Time
+    IsActive  bool
+}</code></pre>
+          <p>
+            …becomes the thing you actually have to type, by hand, for every field, in
+            every struct, forever:
+          </p>
+          <pre><code>type User struct {
+    FirstName string    `json:"first_name" xml:"first_name"`
+    CreatedAt time.Time `json:"created_at" xml:"created_at"`
+    IsActive  bool      `json:"is_active" xml:"is_active"`
+}</code></pre>
+          <p>
+            Notice what you just did: you wrote each field name a second time, in a
+            different case, twice over. It's mechanical, it's error-prone (one typo and a
+            field silently serializes under the wrong key), and it's exactly the kind of
+            work a computer should be doing for you.
+          </p>
+
+          <h2>So we made the computer do it</h2>
+          <p>
+            <strong>EasyTags</strong> is a tiny CLI that reads your Go source, walks every
+            struct declaration it finds, and writes the tags in for you — converting each
+            field name to snake_case (camel and pascal cases are supported too, if that's
+            your house style). Point it at a file:
+          </p>
           <pre><code>easytags {file_name} {tag_name_1:case_1, tag_name_2:case_2}
 
 # the simplest form — defaults to json, snake_case:
 easytags file.go</code></pre>
+          <p>
+            Run that against the first <code>User</code> above and the tags appear,
+            correctly cased, no typing required.
+          </p>
 
-          <h2>Even better: with <code>go generate</code></h2>
-          <p>Drop a directive at the top of your source file:</p>
+          <h2>Even better: let <code>go generate</code> run it</h2>
+          <p>
+            Reaching for the terminal every time is still friction. The nicer way is to let
+            Go's own tooling drive it. Drop a directive at the top of your source file:
+          </p>
           <pre><code>//go:generate easytags $GOFILE json,xml,sql</code></pre>
           <p>
-            Then run <code>go generate</code>, and every struct in the file gets its
-            json, xml, and sql tags written for you. It's also polite about your intent:
-            if you've already set a tag's value to <code>"-"</code>, EasyTags leaves it
-            exactly as it is.
+            Then any time you run <code>go generate</code>, EasyTags sweeps every struct in
+            that file and writes the json, xml, and sql tags for you. It becomes part of
+            the same reproducible step that already generates your mocks, your protobufs,
+            your stringers — no special-snowflake workflow, no human in the loop.
+          </p>
+
+          <h2>It respects your intentions</h2>
+          <p>
+            Automation that overwrites your deliberate choices is worse than no automation
+            at all, so EasyTags is careful about one important case: if you've already set
+            a tag's value to <code>"-"</code> (Go's idiom for "never serialize this
+            field"), it leaves that tag exactly as it is. Your opt-outs stick. It only fills
+            in what's missing; it doesn't bulldoze what you meant.
+          </p>
+          <p>
+            It also grew up with the language — it now supports Go modules, so it slots into
+            a modern project just as cleanly as it did into a <code>GOPATH</code> one back
+            in 2015.
           </p>
 
           <h2>Small tool, big quality of life</h2>
           <p>
-            EasyTags will never make a highlight reel — it's about 75 stars' worth of
-            "oh, that's nice." But removing a small, constant friction from everyday
-            coding is its own kind of win. The best tools are often the ones you forget
-            you're using.
+            EasyTags will never make a highlight reel — it's about 75 stars and 19 forks
+            worth of quiet "oh, that's nice." But removing a small, constant friction from
+            everyday coding compounds in a way that flashy features rarely do. You stop
+            thinking about tags entirely; they're just always correct.
+          </p>
+          <p>
+            That's the whole philosophy, really: the best tools are the ones you forget
+            you're using. EasyTags is one of those — a Betacraft side-quest that turned a
+            daily papercut into a directive you write once and never think about again.
           </p>
         </div>
 
