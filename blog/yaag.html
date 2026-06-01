@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YAAG: API Docs for Go Without Writing a Single Comment - Aniket Awati</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="blog-topbar">
+        <a href="../index.html" class="back-link">← aniketawati.com</a>
+        <a href="../blog.html" class="back-link">← Back to blog</a>
+      </div>
+
+      <article class="article">
+        <header class="article-header">
+          <h1>YAAG: API Docs for Go Without Writing a Single Comment</h1>
+          <p class="subtitle">
+            Yet Another API doc Generator — a weekend hack from GopherGala 2015
+          </p>
+          <div class="post-meta">23 January 2015</div>
+          <span class="post-source">
+            Project on
+            <a href="https://github.com/betacraft/yaag" target="_blank" rel="noopener"
+              >github.com/betacraft/yaag</a
+            >.
+          </span>
+        </header>
+
+        <div class="article-body">
+          <p>
+            Go is a wonderful language for building web apps. By early 2015 the ecosystem
+            had everything you could want — fast HTTP servers, a dozen good routers,
+            helper libraries for days. Everything, that is, except a decent way to
+            document your APIs. And let's be honest: nobody has ever enjoyed writing API
+            documentation.
+          </p>
+          <p>
+            So at GopherGala 2015 — a 48-hour global Go hackathon — we decided to fix the
+            part everyone quietly hated. We built the first API doc generator for Go web
+            apps and, true to the genre of "yet another &lt;thing&gt;," called it
+            <strong>YAAG</strong>: Yet Another API doc Generator.
+          </p>
+
+          <h2>The premise: zero comments</h2>
+          <p>
+            Most doc tools ask you to annotate every handler with special comments, keep
+            them in sync, and pray. We wanted the opposite. The whole pitch of YAAG was
+            that you shouldn't have to write a single line of comments to get usable docs.
+          </p>
+
+          <h2>How it works</h2>
+          <p>
+            YAAG is middleware. You drop its handler into your routes and then just use
+            your API the way you already do — hit it with Postman, curl, your test suite,
+            the frontend, whatever. YAAG watches the real requests and responses go by and
+            continuously writes out a clean, Bootstrap-based <code>apidoc.html</code>
+            (plus a JSON file capturing every call it saw). Your documentation is
+            literally a side effect of exercising your own API.
+          </p>
+          <p>With the standard <code>net/http</code> package it's about four lines:</p>
+          <pre><code>func handler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+func main() {
+    yaag.Init(&amp;yaag.Config{On: true, DocTitle: "Core", DocPath: "apidoc.html"})
+    http.HandleFunc("/", middleware.HandleFunc(handler))
+    http.ListenAndServe(":8080", nil)
+}</code></pre>
+          <p>
+            From there it grew adapters for the popular frameworks of the day — Gorilla
+            Mux, Martini, and Revel — so most Go web apps could bolt it on with a couple of
+            lines.
+          </p>
+
+          <h2>The afterlife</h2>
+          <p>
+            We built it for in-house docs — the kind you need for your own team but don't
+            want to hand-craft for the public. People liked it more than we expected. Last
+            I checked it's sitting at around 286 stars and a healthy pile of forks, which
+            for a weekend hackathon project is genuinely humbling. Not bad for something
+            whose name is a shrug.
+          </p>
+        </div>
+
+        <footer class="article-footer">
+          <a href="../blog.html" class="back-link">← Back to blog</a>
+        </footer>
+      </article>
+
+      <footer class="footer">
+        <p>© <span id="year">2026</span> Aniket Awati. Made with ☕ and mild existential dread.</p>
+      </footer>
+    </div>
+
+    <script src="../script.js"></script>
+  </body>
+</html>

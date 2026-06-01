@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EasyTags: Stop Hand-Writing Go Struct Tags - Aniket Awati</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="blog-topbar">
+        <a href="../index.html" class="back-link">← aniketawati.com</a>
+        <a href="../blog.html" class="back-link">← Back to blog</a>
+      </div>
+
+      <article class="article">
+        <header class="article-header">
+          <h1>EasyTags: Stop Hand-Writing Go Struct Tags</h1>
+          <p class="subtitle">
+            A tiny CLI that generates your json/xml/sql tags so you don't have to
+          </p>
+          <div class="post-meta">21 February 2015</div>
+          <span class="post-source">
+            Project on
+            <a href="https://github.com/betacraft/easytags" target="_blank" rel="noopener"
+              >github.com/betacraft/easytags</a
+            >.
+          </span>
+        </header>
+
+        <div class="article-body">
+          <p>
+            A few weeks after <a href="yaag.html">YAAG</a>, another small Go annoyance
+            started to grate. You write struct fields in CamelCase, because that's how Go
+            wants them. But when those structs marshal to JSON (or XML, or hit a SQL
+            column) you almost always want <code>snake_case</code>. So you end up typing
+            every field name twice — once as the Go field, once as the tag, in a different
+            case — for every field, in every struct, forever.
+          </p>
+          <p>
+            It's exactly the kind of repetitive, mechanical work that a computer should be
+            doing. So we made the computer do it. <strong>EasyTags</strong> is a tiny CLI
+            that walks every struct declaration in your file and adds the tags for you,
+            converting the field name to snake_case (camel and pascal cases are supported
+            too).
+          </p>
+
+          <h2>Usage</h2>
+          <p>Point it at a file and tell it which tags you want:</p>
+          <pre><code>easytags {file_name} {tag_name_1:case_1, tag_name_2:case_2}
+
+# the simplest form — defaults to json, snake_case:
+easytags file.go</code></pre>
+
+          <h2>Even better: with <code>go generate</code></h2>
+          <p>Drop a directive at the top of your source file:</p>
+          <pre><code>//go:generate easytags $GOFILE json,xml,sql</code></pre>
+          <p>
+            Then run <code>go generate</code>, and every struct in the file gets its
+            json, xml, and sql tags written for you. It's also polite about your intent:
+            if you've already set a tag's value to <code>"-"</code>, EasyTags leaves it
+            exactly as it is.
+          </p>
+
+          <h2>Small tool, big quality of life</h2>
+          <p>
+            EasyTags will never make a highlight reel — it's about 75 stars' worth of
+            "oh, that's nice." But removing a small, constant friction from everyday
+            coding is its own kind of win. The best tools are often the ones you forget
+            you're using.
+          </p>
+        </div>
+
+        <footer class="article-footer">
+          <a href="../blog.html" class="back-link">← Back to blog</a>
+        </footer>
+      </article>
+
+      <footer class="footer">
+        <p>© <span id="year">2026</span> Aniket Awati. Made with ☕ and mild existential dread.</p>
+      </footer>
+    </div>
+
+    <script src="../script.js"></script>
+  </body>
+</html>

@@ -718,6 +718,60 @@ html {
     font-style: italic;
 }
 
+.article-body code {
+    font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.9em;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-light);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.3rem;
+}
+
+.article-body pre {
+    background: var(--bg-dark);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    margin: 0 0 1.5rem;
+}
+
+.article-body pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* Responsive 16:9 video embed */
+.video-embed {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    margin: 0 0 1rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--bg-dark);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-embed iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.video-caption {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+}
+
 .article-footer {
     margin-top: 3rem;
     padding-top: 2rem;

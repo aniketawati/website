@@ -211,8 +211,17 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Keep the footer copyright year current
+function updateFooterYear() {
+    const yearEl = document.getElementById('year');
+    if (yearEl) {
+        yearEl.textContent = new Date().getFullYear();
+    }
+}
+
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    updateFooterYear();
     updateActiveNav();
     animateOnScroll();
     enhanceGlitchEffect();
