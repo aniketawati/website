@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zero to Prod in 60 Days - Aniket Awati</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="blog-topbar">
+        <a href="../index.html" class="back-link">← aniketawati.com</a>
+        <a href="../blog.html" class="back-link">← Back to blog</a>
+      </div>
+
+      <article class="article">
+        <header class="article-header">
+          <h1>Zero to Prod in 60 Days</h1>
+          <div class="post-meta">1 June 2026</div>
+        </header>
+
+        <div class="article-body">
+          <p>
+            Most of what you see from AI coding is a toy. A fancy little app. A clone of
+            something that already exists. A weekend hack that demos well and dies in a
+            browser tab. Impressive in a narrow way, easy to dismiss in every other way.
+          </p>
+          <p>
+            I wanted to know if the same tooling could do the unglamorous thing: build a
+            large, complex SaaS from scratch. Not a feature. Not a prototype. A product you
+            could actually take to market. Something so complex that you would have needed
+            a small dev team just to prototype it without AI.
+          </p>
+          <p>
+            So I decided to give it a serious try and build it myself. I've stayed
+            hands-on in bits and pieces over the years, a weekend here, a prototype there,
+            and a couple of features shipped every quarter. But this was the first time in
+            a long while that I went full builder mode. Head down, full time, living in the
+            codebase again.
+          </p>
+          <p>
+            And the result surprised me. I'll be honest: I half-expected the wheels to come
+            off somewhere around the point where toy projects usually fall apart. They
+            mostly didn't. Watching a genuinely complex product take shape this fast does
+            something to you — there's a quiet disbelief sitting underneath the excitement,
+            the part of you with years of scar tissue still waiting for the catch. The catch
+            never quite arrived.
+          </p>
+          <p>
+            I'll write about the product itself separately — what it does, the actual shape
+            of it. This post isn't that. This one is about the how: the handful of
+            approaches that worked, and what I learned dragging an empty repo all the way to
+            something real.
+          </p>
+          <p>
+            The short version is that it worked because of four decisions I made early, and
+            would have fallen apart without them. The new tooling gives you speed. It does
+            not give you judgment. Left alone, an AI agent is a tireless engineer with no
+            taste — infinite energy, zero restraint, and a deep love of generating code
+            nobody asked for. The job turned out to be less "build the product" and more
+            "build the thing that stops the product from turning into sludge."
+          </p>
+          <p>Here is what held it together.</p>
+
+          <h2>Keep it boring</h2>
+          <p>
+            At this scale the instinct is to reach for complex architectures anticipating
+            every possible scale, performance and efficiency scenario upfront. But I opted
+            to avoid it and keep it extremely simple. Every clever pattern is one more thing
+            the agent can misapply at 2am while sounding completely confident about it.
+          </p>
+          <p>
+            Simple architecture isn't a limitation here, it's a safety feature. Fewer moving
+            parts means fewer ways to be subtly wrong. Boring code is code you can still
+            reason about after the agent has touched it forty times.
+          </p>
+
+          <h2>One tree</h2>
+          <p>
+            Everything lives in one monorepo. This matters more with an agent than it ever
+            did with people.
+          </p>
+          <p>
+            An agent is only as good as what it can see. Split the code across repos and
+            every change becomes a guess about the other side. One tree gives the agent the
+            whole picture without any complicated multi-repo tooling, lets a single change
+            cut cleanly across the stack, and leaves nowhere for code to quietly rot in a
+            corner you forgot existed.
+          </p>
+
+          <h2>Split on load, not on the org chart</h2>
+          <p>
+            The last 10 years we have defaulted to microservices on team boundaries.
+            Conway's law, bounded contexts, the usual. The problem is the team structures
+            are being reshaped by the new paradigm. Splitting a system along team boundaries
+            may have made sense some time ago, but I think that time has long passed now.
+          </p>
+          <p>
+            So it stayed a monolith for as long as that made sense, and I only carved out a
+            separate service when something genuinely needed to scale on its own terms — a
+            heavy async data workload that had no business sharing resources with low
+            concurrency control flow. Scale boundary, not team boundary. The decision to
+            split was always about load, never about ownership.
+          </p>
+
+          <h2>The harness comes first</h2>
+          <p>This is the one that actually mattered.</p>
+          <p>
+            Before features, I built the end-to-end test/verification stack. The full thing,
+            running, from day one. It became the harness — every change, whether I wrote it
+            or the agent did, has to pass through it. And it earns its keep constantly,
+            because an agent will cheerfully report that it fixed a bug while quietly
+            breaking two others. The harness is what catches the confident lie.
+          </p>
+          <p>
+            It was still not a TDD. But the tests were part of the workflow so that every
+            new change got corresponding new test coverage from unit to E2E. This does
+            become very time consuming as you go along (here — ~1500 tests running actual
+            data processing, takes ~50m per run), but it's worth the time and effort. The AI
+            tooling is able to move 100x faster, so a slow verification flow is not a large
+            trade off, especially since you can run many parallel work streams.
+          </p>
+          <p>
+            Ajey Gore made a sharper version of this point recently in
+            <a
+              href="https://ajeygore.in/content/the-tests-we-skipped"
+              target="_blank"
+              rel="noopener"
+              >The Tests We Skipped</a
+            >. His argument, roughly: the harness you build for the agent is the same
+            harness good engineers were always asking for, and all the agent really did was
+            shorten the feedback loop so the cost of skipping it lands now instead of much
+            later. Worth reading. It says the quiet part out loud — none of this is new, the
+            deadline just moved.
+          </p>
+
+          <h2>One principle, wearing four hats</h2>
+          <p>
+            These weren't four separate tricks. They're the same idea four times: keep the
+            system legible, and keep it constrained.
+          </p>
+          <p>
+            AI tooling hands you velocity for free. What it doesn't mention is that velocity
+            is neutral. With a harness around it, speed compounds into a real product.
+            Without one, the same speed just gets you to the wall faster. It worked because
+            of the guardrails, not despite them.
+          </p>
+          <p>
+            The toys were never an interesting question. The interesting question was
+            whether the boring discipline still applies when the code writes itself. It
+            does. If anything, it applies more.
+          </p>
+        </div>
+
+        <footer class="article-footer">
+          <a href="../blog.html" class="back-link">← Back to blog</a>
+        </footer>
+      </article>
+
+      <footer class="footer">
+        <p>© <span id="year">2026</span> Aniket Awati. Made with ☕ and mild existential dread.</p>
+      </footer>
+    </div>
+
+    <script src="../script.js"></script>
+  </body>
+</html>
