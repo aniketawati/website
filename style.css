@@ -461,10 +461,39 @@ body {
         padding: 0 1rem;
     }
     
+    /* Floating side nav becomes a fixed bottom bar on mobile */
     .floating-nav {
-        display: none;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: none;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.4rem 0;
     }
-    
+
+    .floating-nav ul {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 0;
+    }
+
+    .floating-nav a {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.8rem;
+    }
+
+    .floating-nav a:hover {
+        transform: none;
+    }
+
+    /* leave room so the bottom bar never covers the footer */
+    body {
+        padding-bottom: 3.5rem;
+    }
+
     .skills-grid {
         grid-template-columns: 1fr;
     }
@@ -499,6 +528,12 @@ body {
     .project-card,
     .contact-card {
         padding: 1.5rem;
+    }
+
+    /* keep all 5 nav items on one row on the narrowest phones */
+    .floating-nav a {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.7rem;
     }
 }
 
